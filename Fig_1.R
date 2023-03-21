@@ -1,4 +1,4 @@
-setwd("/Users/datn/github/circQTL_analysis")
+setwd("/Users/datn/github/cscQTL_paper")
 
 
 require(data.table)

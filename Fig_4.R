@@ -1,40 +1,11 @@
-setwd("/Users/datn/github/circQTL_analysis")
+setwd("/Users/datn/github/cscQTL_paper")
 
 require(data.table)
 library(ggpubr)
 require(ggplot2)
 library(scales)
 library("ggplotify")
-
-
-
-
-
-my_plotter <- function(df){
-  gwas_fn = eqtl_fn = "tem.txt"
-  marker_col = "rsID"
-  gwas_pvalue = "gwas_pvalue"
-  eqtl_pvalue = "eqtl_pvalue"
-  fwrite(df, file = gwas_fn, row.names = F, sep = "\t")
-  res = locuscompare(in_fn1=gwas_fn, in_fn2=eqtl_fn, title1="GWAS", title2="eQTL", marker_col1= marker_col, pval_col1=gwas_pvalue, marker_col2=marker_col, pval_col2=eqtl_pvalue)
-  return(res)
-}
-#my_plotter(df)
-
-
-
-plot_all <- function(data){
-  locuscompare_res = list()
-  load(data)
-  ids = as.character( qtl_hit$V1[qtl_hit$PP.H4.abf >= 0.5])
-  if(length(ids> 0)){
-    for(id in ids){
-      df = res[[id]]
-      locuscompare_res[[id]] = my_plotter(df)
-    }
-  }
-  return(locuscompare_res)
-}
+require(ggVennDiagram)
 
 
 read_normial_qtl <- function(dir, chr_list = as.character(c(1:22))){
@@ -48,194 +19,182 @@ read_normial_qtl <- function(dir, chr_list = as.character(c(1:22))){
 }
 
 
-get_gen_exp_df <- function(chr, gene, snp, dir){
-	# chr = "6"
-	# gene = "6__90206569__90271941__ENSG00000112182"
-	# snp = "rs60066732"
-	# dir = "consensus_3/recount_qtl_input"
-	
-	vcffn = paste0(dir, "/", chr, ".vcf.gz")
-	vcf = fread(vcffn)
-	mysnp = vcf[vcf$ID == snp,]
-	ref = paste0(mysnp$REF, mysnp$REF)
-	het = paste0(mysnp$REF, mysnp$ALT)
-	alt = paste0(mysnp$ALT, mysnp$ALT)
-	mysnp[mysnp == "0/0"] = ref
-	mysnp[mysnp == "1/0" | mysnp == "0/1"] = het
-	mysnp[mysnp == "1/1"] = alt
-	mysnp2 = as.character(mysnp[1,-c(1:9)])
+ggven <- function(x){
+  venn <- Venn(x)
+  data <- process_data(venn)
+  df = venn_region(data)
+  df$percent = round(df$count/ sum(df$count),4)*100
+  df$my_lab = paste0(df$count, "\n(", df$percent, "%)")
 
-	exp_fn = paste0(dir, "/", chr, ".bed.gz")
-	exp = fread(exp_fn)
-
-	myexp = exp[exp$TargetID == gene,]
-	myexp2 = as.numeric(myexp[1,-c(1:4)])
-
-	df = data.frame(Genotype = mysnp2, Expression = myexp2)
-	df$Genotype = factor(mysnp2, levels = c(ref, het, alt))
-	return(df)
-	#ggplot(df, aes(x = Genotype, y = Expression)) + geom_boxplot(fill = "grey80", color = "black") + geom_jitter(width = 0.2, height = 0, color = "blue") + labs(title = "My Box Plot with Data Points", x = "Genotype", y = "Expression") + theme_classic()
+  p = ggplot() + geom_sf(aes(fill=id, alpha = 0.5), data = df) + geom_sf(size = 2, lty = "solid", color = "gray", data = venn_setedge(data), show.legend = F) + geom_sf_text(aes(label = name), data = venn_setlabel(data)) + geom_sf_label(aes(label=my_lab), size = 2.5, data = df, alpha = 0, label.size  = NA) + theme_void() + theme(legend.position = "none")
+  #p = p + scale_color_brewer(palette="Dark2") 
+  p = p + scale_x_continuous(expand = expansion(mult = .2))
+  return(p)
 }
 
 
-plot_gen_exp <- function(chr, gene, snp, dir, title = NULL){
-	# chr = "6"
-	# gene = "6__90206569__90271941__ENSG00000112182"
-	# snp = "rs60066732"
-	# dir = "consensus_3/recount_qtl_input"
-	
-	vcffn = paste0(dir, "/", chr, ".vcf.gz")
-	vcf = fread(vcffn)
-	mysnp = vcf[vcf$ID == snp,]
-	ref = paste0(mysnp$REF, mysnp$REF)
-	het = paste0(mysnp$REF, mysnp$ALT)
-	alt = paste0(mysnp$ALT, mysnp$ALT)
-	mysnp[mysnp == "0/0"] = ref
-	mysnp[mysnp == "1/0" | mysnp == "0/1"] = het
-	mysnp[mysnp == "1/1"] = alt
-	mysnp2 = as.character(mysnp[1,-c(1:9)])
 
-	exp_fn = paste0(dir, "/", chr, ".bed.gz")
-	exp = fread(exp_fn)
 
-	myexp = exp[exp$TargetID == gene,]
-	myexp2 = as.numeric(myexp[1,-c(1:4)])
+csc = fread("consensus_3/qtl_mapping_apply_qvalue/recount.tsv")
 
-	df = data.frame(Genotype = mysnp2, Expression = myexp2)
-	df$Genotype = factor(mysnp2, levels = c(ref, het, alt))
-	#return(df)
-	p = ggplot(df, aes(x = Genotype, y = Expression, fill = Genotype,)) + geom_boxplot(color = "black", alpha = 0.9, width = 0.5) + labs(title = title, x = paste0("Genotype - ", snp), y = "Normalized expression") + theme_classic()
-	p = p + geom_jitter(width = 0.3, height = 0) 
-	p = p + theme(legend.position = c(0.8, 0.9))
-	#p = p + geom_dotplot(binaxis='y', stackdir='center', position=position_dodge(1))
-	return(p)
+# csc1 = fread("consensus_1/qtl_mapping_apply_qvalue/recount.tsv")
+
+
+
+
+
+# Fig A. Q-Q plot of p-values
+
+pnorm_cut = max(csc$V6[which(csc$V18 == max(csc$V18))])
+
+norm_pass_all = norm_pass = read_normial_qtl("consensus_3/recount_qtl_mapping_nominal")
+
+norm_pass = norm_pass[norm_pass$V1 %in% csc$V1,]
+norm_pass = norm_pass[norm_pass$V12 < pnorm_cut,]
+
+obs_all = -log10(sort(as.numeric(norm_pass_all$V12)))
+# reduced size by 50
+obs = obs_all[seq(1,length(obs_all),50)]
+
+exp = -log10(ppoints(length(obs))/10)
+
+df = data.frame(obs = obs, exp = exp)
+
+A = ggplot(data = df, aes(x = exp, y = obs)) + geom_point(shape = 21, size = 1.2, color = "#4682B4", alpha = 1) + geom_abline(intercept = 0, slope = 1, size = 1)
+
+log10Pe <- expression(paste("Expected -log"[10], plain(P)))
+log10Po <- expression(paste("Observed -log"[10], plain(P)))
+
+A = A + theme_classic() + ylab(log10Po) + xlab(log10Pe)
+
+
+
+
+
+
+# Fig B. effect size circRNAs vs parent mRNA
+
+esnp_circ = norm_pass
+esnp_circ$geneID = sapply(esnp_circ$V1, FUN = function(x){unlist(strsplit(x, "__"))[4]})
+
+
+esnp_mrna = read_normial_qtl("consensus_3/salmon_qtl_mapping_nominal")
+esnp_mrna = esnp_mrna[esnp_mrna$V8 %in% esnp_circ$V8]
+
+esnp_circ$circRNA_slope = esnp_circ$V14
+esnp_circ$mRNA_slope = esnp_mrna$V14[match(esnp_circ$geneID, esnp_mrna$V1)]
+
+esnp_circ = esnp_circ[!is.na(esnp_circ$mRNA_slope),]
+
+B = ggplot(data = esnp_circ, aes(x = circRNA_slope, y = mRNA_slope)) + geom_point(shape = 21, size = 1.2, color = "#4682B4", alpha = 1) + ylab("Estimated slope of parent linear genes") + xlab("Estimated slope of circRNAs") 
+
+m = lm(mRNA_slope ~ circRNA_slope, data = esnp_circ)
+c = cor.test(esnp_circ$circRNA_slope, esnp_circ$mRNA_slope, method = "pearson")
+print(c)
+c = round(c$estimate,3)
+text = paste0("R=", c, "\np-value < 2.2e-16")
+B = B + geom_abline(intercept = m$coefficients[1], slope = m$coefficients[2], color="black", size=1) 
+B = B + annotate(geom="text", x=-0.7, y=1.25, label= text,color="black")
+B = B + theme_classic()
+B = B + theme(legend.position = c(0.85, 0.125))
+
+
+# Fig C. Distance distribution of eSNPs
+
+## counting before ploting
+norm_pass$dis = norm_pass$V7/1e3
+
+cuts = seq(-1e3, 1e3, 2e2)
+lab = paste0( "(", cuts[1:10], ":", cuts[2:11], "]")
+df = data.frame(Distance = cuts)
+df$Count = 0
+
+
+for(i in 1:length(cuts)){
+	dis = norm_pass$dis
+	dis = dis[dis > cuts[i]]
+	dis = dis[dis <= cuts[i+1]]
+	df$Count[i] = length(dis)
 }
-
-
-################
-t1d_recount= plot_all("consensus_3/coloc_recount/coloc_result_T1D.tsv.gz.Rdata")
-cd_recount= plot_all("consensus_3/coloc_recount/coloc_result_CD.tsv.gz.Rdata")
-ibd_recount= plot_all("consensus_3/coloc_recount/coloc_result_IBD.tsv.gz.Rdata")
-uc_recount= plot_all("consensus_3/coloc_recount/coloc_result_UC.tsv.gz.Rdata")
+df = df[1:10,]
+df$Distance = lab
 
 
 
-
-
-####### Fig 4. T1D-circBACH2
-
-load("consensus_3/coloc_recount/coloc_result_T1D.tsv.gz.Rdata")
-
-###### adding effect size and p-values
-
-crna = 	qtl_hit
-pick = crna$V7 == "rs60066732" & crna$V1 == "6__90206569__90271941__ENSG00000112182"
-slope = round(crna[pick,]$V14, 3)
-pval = format(crna[pick,]$V6, scientific = T)
-lab_b = paste0("estimated slope=", slope, "\np-value=", pval)
-
-mrna = read_normial_qtl("consensus_3/salmon_qtl_mapping_nominal")
-pickc = mrna$V8 == "rs60066732" & mrna$V1 == "ENSG00000112182"
-slopec = round(mrna[pickc,]$V14, 3)
-pvalc = format(mrna[pickc,]$V12, scientific = T)
-lab_c = paste0("estimated slope=", slopec, "\np-value=", pvalc)
+positions = as.character(df$Distance[1:10])
 
 
 
 
-A <- as.grob(t1d_recount$`6__90206569__90271941__ENSG00000112182`)
-A + annotate(geom="text", x=1, y=1, label= "rs60066732",color="black")
+C = ggplot(norm_pass, aes(x=dis)) + geom_histogram(color="black", fill="#4682B4", binwidth = 20) + theme_classic() + ylab("Number of circSNPs") + xlab("Distance (kilobase)") + xlim(-1000,1000) + scale_x_continuous(breaks = seq(-1000, 1000, 200)) 
 
-B = plot_gen_exp(chr = 6, gene = "6__90206569__90271941__ENSG00000112182", snp = "rs60066732", dir = "consensus_3/recount_qtl_input", title = "circBACH2")
+#
+# Fig D. VEP annotation of eSNPs
 
-C = plot_gen_exp(chr = 6, gene = "ENSG00000112182", snp = "rs60066732", dir = "consensus_3/salmon_qtl_input", title = "BACH2 gene")
+### export eSNPs for VEP analyses
+# fwrite(list(norm_pass$V8), file = "output_paper/cscQTL_all_eSNP.txt", sep = "\t")
+# esnp_all = norm_pass$V8
+vep = fread("databases/VEP_cscQTL_eSNP.txt")
+dup = duplicated(vep$`#Uploaded_variation`)
+vep = vep[!dup,]
 
-B = B + annotate(geom="text", x=1, y=-1.2, label= lab_b,color="black")
-C = C + annotate(geom="text", x=1, y=-1.5, label= lab_c,color="black")
+count = sort(table(vep$Consequence), decreasing = T)
+
+count_plot = count[1:9]
+count_names = gsub("_variant", "", names(count_plot))
+count_names = gsub("_exon", "", count_names)
+count_names = gsub("_", " ", count_names)
+count_names = c(count_names, "others")
+count_plot = c(count_plot, sum(count[10:length(count)]))
+
+count_pct = round(count_plot/sum(count_plot)*100,2)
+count_names = paste0(count_names, " (", count_pct, "%)")
+
+names(count_plot) = count_names
+
+#positions = as.character(count_names)
+
+df = data.frame(Group = count_names, Count = count_plot, Count_pct = count_pct)
+df$Group = factor(df$Group, levels = count_names)
+# Barplot
+bp <- ggplot(df, aes(x="", y=Count, fill=Group))+
+geom_bar(width = 1, stat = "identity", color = "gray", alpha = 0.5)
+pie <- bp + coord_polar("y", start=0)
+
+D = pie + theme_void() + theme(axis.text.x=element_blank())
 
 
-## merge figures
+#pie + geom_label_repel(aes(label = count_pct), size=5, show.legend = F, nudge_x = 1) + guides(fill = guide_legend(title = "Group"))
 
-r1 = ggarrange(A, ncol = 1, nrow = 1) + annotate(geom="text", x=0.8, y=0.55, label= "rs60066732",color="black") + annotate(geom="text", x=0.15, y=0.97, label= "T1D GWAS - circBACH2",color="black")
+###### E. Counting gene containing eCircRNAs
 
-r2 = ggarrange(B, C, ncol = 2, labels = c("B.", "C."))
+csc3 = fread("consensus_3/qtl_mapping_apply_qvalue/recount.tsv")
+idx = sapply(csc3$V1, FUN = function(x){unlist(gregexpr("__", x))[3]})
+csc3$gene = substr(csc3$V1, idx+2, nchar(csc3$V1))
 
-m = ggarrange(r1, r2,  heights= c(1, 0.8), nrow = 2, align = "v", labels = "A." )
+salmon = fread("consensus_3/qtl_mapping_apply_qvalue/salmon.tsv")
 
-pdf( file= "output_paper/Fig4.pdf",  width= 10, height= 10)
-m
+
+table(csc3$gene %in% salmon$V1)
+
+
+x0 = list("eCircQTL host genes" = csc3$gene, "eQTL eGenes" = salmon$V1)
+
+E = ggven(x0)
+
+
+# r12 = ggarrange(A, D, C, B, widths= c(1, 1), ncol = 2, nrow = 2, labels = c("A.", "B.", "C.", "D."), align = "h")
+# r3 = ggarrange(E, ncol = 2, widths= c(1.5, 0.5), nrow = 1, labels = "E")
+
+
+r12 = ggarrange(A, D, C, B, widths= c(1, 1), ncol = 2, nrow = 2, labels = c("A.", "B.", "C.", "D."), align = "h")
+r3 = ggarrange(E, ncol = 2, widths= c(1.5, 0.5), nrow = 1, labels = "E")
+
+## merging and export figure
+pdf( file= "output_paper/Fig4.pdf",  width= 10, height= 12)
+#ggarrange(r12, r3, nrow = 2, heights = c(1, 0.4), align = "v")
+ggarrange(A, D, C, E, B, widths= c(1, 1), ncol = 2, nrow = 3, labels = c("A.", "B.", "C.", "D.", "E"))
 dev.off()
-
-
-#######
-
-# crna = read_normial_qtl("consensus_3/recount_qtl_mapping_nominal")
-
-# mrna = read_normial_qtl("consensus_3/salmon_qtl_mapping_nominal")
-
-
-
-
-####### Fig S.2,3,4,5
-
-A1 <- as.grob(cd_recount$`6__90206569__90271941__ENSG00000112182`)
-
-A2 <- as.grob(ibd_recount$`6__90206569__90271941__ENSG00000112182`)
-
-A3 <- as.grob(cd_recount$`1__155676548__155679512__ENSG00000163374`)
-
-A4 <- as.grob(ibd_recount$`1__155676548__155679512__ENSG00000163374`)
-
-S2 = ggarrange(A1, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "CD GWAS - circBACH2",color="black")
-
-S3 = ggarrange(A2, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "IBD GWAS - circBACH2",color="black")
-
-S4 = ggarrange(A3, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "CD GWAS - circYY1AP1",color="black")
-
-S5 = ggarrange(A4, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "IBD GWAS - circYY1AP1",color="black")
-
-
-
-
-pdf( file= "output_paper/S2.pdf",  width= 10, height= 6)
-S2
-dev.off()
-
-
-pdf( file= "output_paper/S3.pdf",  width= 10, height= 6)
-S3
-dev.off()
-
-
-pdf( file= "output_paper/S4.pdf",  width= 10, height= 6)
-S4
-dev.off()
-
-
-pdf( file= "output_paper/S5.pdf",  width= 10, height= 6)
-S5
-dev.off()
-
-
-
-###########
-
-
-t1d_recount= plot_all("consensus_3/coloc_recount/coloc_result_T1D.tsv.gz.Rdata")
-cd_recount= plot_all("consensus_3/coloc_recount/coloc_result_CD.tsv.gz.Rdata")
-ibd_recount= plot_all("consensus_3/coloc_recount/coloc_result_IBD.tsv.gz.Rdata")
-uc_recount= plot_all("consensus_3/coloc_recount/coloc_result_UC.tsv.gz.Rdata")
-
-
-
-
-
-####### Fig 4. T1D-circBACH2
-
-#load("consensus_3/coloc_recount/coloc_result_T1D.tsv.gz.Rdata")
-
-
-
 
 
 
