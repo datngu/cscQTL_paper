@@ -65,7 +65,7 @@ f1ax = list(Circall = circall, CIRI2 = ciri2, CIRCexplorer2 = circexp2, Supporti
 ## fig 1 a
 A = ggven(f1ax[1:3])
 
-pdf( file= "output_paper/S1_revise.pdf",  width= 10, height= 12)
+pdf( file= "output_paper/S1_revise.pdf",  width= 5, height= 6)
 A
 dev.off()
 
