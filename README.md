@@ -13,6 +13,7 @@ R (tested on v4.2.0) with packages installed:
 ### 2. Analyze results
 
 ```shell
+Rscript Main_Fig2.R
 
 Rscript Fig_S1.R
 
@@ -20,7 +21,7 @@ Rscript Fig_S2.R
 
 # Fig S3 see jupyter notebook
 
-Rscript Fig_S4-8.R
+Rscript Fig_S4-7.R
 
 ```
 

@@ -30,7 +30,14 @@ cscQTL_3 = read_circ_id_path('40_tcells/consensus_3/recount/recount_res_merged_b
 circall = read_circ_id_path('40_tcells/bovince_circQTL/circRNA_detection/circall/circall_res_merged_bsj_2.tsv')
 ciri2 = read_circ_id_path('40_tcells/bovince_circQTL/circRNA_detection/ciri2/ciri2_res_merged_bsj_2.tsv')
 circexp2 = read_circ_id_path('40_tcells/bovince_circQTL/circRNA_detection/circexp2/circexp2_res_merged_bsj_2.tsv')
-circRNA_finder = read_circ_id_path('40_tcells/bovince_circQTL/circRNA_detection/circRNA_finder/circRNA_finder_res_merged_bsj_2.tsv')
+
+
+ciri2_cq = read_circ_id_path('40_tcells/bovince_circQTL/bovince_qtl_filtered/ciri2_res_merged_bsj_2.tsv')
+
+circexp2_cq = read_circ_id_path('40_tcells/bovince_circQTL/bovince_qtl_filtered/circexp2_res_merged_bsj_2.tsv')
+
+circRNA_finder_cq = read_circ_id_path('40_tcells/bovince_circQTL/bovince_qtl_filtered/circRNA_finder_res_merged_bsj_2.tsv')
+
 
 y1 = table(cscQTL_1 %in% circ_atlas$Id)[2]
 y2 = table(cscQTL_2 %in% circ_atlas$Id)[2]
@@ -39,15 +46,20 @@ y3 = table(cscQTL_3 %in% circ_atlas$Id)[2]
 y4 = table(circall %in% circ_atlas$Id)[2]
 y5 = table(ciri2 %in% circ_atlas$Id)[2]
 y6 = table(circexp2 %in% circ_atlas$Id)[2]
-y7 = table(circRNA_finder %in% circ_atlas$Id)[2]
 
-x = list(cscQTL_1 = cscQTL_1, cscQTL_2 = cscQTL_2, cscQTL_3 = cscQTL_3, Circall = circall, CIRI2 = ciri2, CIRCexplorer2 = circexp2, circRNA_finder = circRNA_finder)
+y7 = table(ciri2_cq %in% circ_atlas$Id)[2]
+y8 = table(circexp2_cq %in% circ_atlas$Id)[2]
+y9 = table(circRNA_finder_cq %in% circ_atlas$Id)[2]
+
+
+
+x = list(cscQTL_1 = cscQTL_1, cscQTL_2 = cscQTL_2, cscQTL_3 = cscQTL_3, Circall = circall, CIRI2 = ciri2, CIRCexplorer2 = circexp2, BV_CIRI2 = ciri2_cq, BV_CIRCexplorer2 = circexp2_cq, BV_circRNA_finder = circRNA_finder_cq)
 
 
 methods = names(x)
 df = data.frame(Methods = methods)
 df$circRNA = lengths(x)
-df$Count_CircAtlas = c(y1, y2, y3, y4, y5, y6, y7)
+df$Count_CircAtlas = c(y1, y2, y3, y4, y5, y6, y7, y8, y9)
 
 
 # Fig A
@@ -78,33 +90,6 @@ A = A + scale_fill_brewer(palette="Paired") + theme_classic() + theme(legend.pos
 
 
 
-## Fig B
-
-## read statistics
-
-circall = fread('40_tcells/bovince_circQTL/circRNA_detection/circall.stat')
-ciri2 = fread('40_tcells/bovince_circQTL/circRNA_detection/ciri2.stat')
-circexp2 = fread('40_tcells/bovince_circQTL/circRNA_detection/circexp2.stat')
-circRNA_finder = fread('40_tcells/bovince_circQTL/circRNA_detection/circRNA_finder.stat')
-
-methods = c(rep('Circall', 40), rep('CIRI2', 40), rep('CIRCexplorer2',40), rep('circRNA_finder',40))
-counts = c(circall$V1, ciri2$V1, circexp2$V1, circRNA_finder$V1)
-
-df = data.frame(Methods = methods, Counts = counts)
-
-plot = ggplot(df, aes(x = Methods, y = Counts, fill = Methods)) +
-  geom_boxplot()
-
-
-# Calculate mean values by type
-mean_values <- aggregate(Counts ~ Methods, data = df, FUN = mean)
-
-# Add the mean labels to the plot
-B = plot + geom_text(data = mean_values, aes(label = round(Counts)), vjust = -0.8, size=3) + theme_classic() + theme(legend.position = "none") + ylab("#circRNA with BSJ >= 2 detected") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-pdf( file= "output_paper/S2_revise.pdf",  width= 10, height= 6)
-#ggarrange(A, B,  heights= c(1, 1), nrow = 2, labels = c("A.", "B."))
-ggarrange(A, B,  widths= c(1, 1), ncol = 2, labels = c("A.", "B."))
-
+pdf( file= "output_paper/S2A_revise.pdf",  width= 8, height= 6)
+A
 dev.off()

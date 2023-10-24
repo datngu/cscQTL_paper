@@ -16,7 +16,7 @@ my_plotter <- function(df){
   gwas_pvalue = "gwas_pvalue"
   eqtl_pvalue = "eqtl_pvalue"
   fwrite(df, file = gwas_fn, row.names = F, sep = "\t")
-  res = locuscompare(in_fn1=gwas_fn, in_fn2=eqtl_fn, title1="GWAS", title2="eQTL", marker_col1= marker_col, pval_col1=gwas_pvalue, marker_col2=marker_col, pval_col2=eqtl_pvalue)
+  res = locuscompare(in_fn1=gwas_fn, in_fn2=eqtl_fn, title1="GWAS", title2="eQTL", marker_col1= marker_col, pval_col1=gwas_pvalue, marker_col2=marker_col, pval_col2=eqtl_pvalue, genome = 'hg38')
   return(res)
 }
 #my_plotter(df)
@@ -65,15 +65,10 @@ uc_recount= plot_all("40_tcells/consensus_3/coloc_recount/coloc_result_UC.tsv.gz
 
 
 
+####### Fig S4-7
 
-
-
-
-####### Fig S.2,3,4,5
-
-
-
-A <- as.grob(t1d_recount$`6__90206569__90271941__ENSG00000112182`)
+# moved to main fig 2
+# A <- as.grob(t1d_recount$`6__90206569__90271941__ENSG00000112182`)
 
 A1 <- as.grob(cd_recount$`6__90206569__90271941__ENSG00000112182`)
 
@@ -83,39 +78,36 @@ A3 <- as.grob(cd_recount$`1__155676548__155679512__ENSG00000163374`)
 
 A4 <- as.grob(ibd_recount$`1__155676548__155679512__ENSG00000163374`)
 
-S2 = ggarrange(A, ncol = 1, nrow = 1) + annotate(geom="text", x=0.8, y=0.55, label= "rs60066732",color="black") + annotate(geom="text", x=0.15, y=0.97, label= "T1D GWAS - circBACH2",color="black")
+# moved to main fig 2
 
-S3 = ggarrange(A1, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "CD GWAS - circBACH2",color="black")
 
-S4 = ggarrange(A2, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "IBD GWAS - circBACH2",color="black")
+S4 = ggarrange(A1, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "CD GWAS - circBACH2",color="black")
 
-S5 = ggarrange(A3, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "CD GWAS - circYY1AP1",color="black")
+S5 = ggarrange(A2, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "IBD GWAS - circBACH2",color="black")
 
-S6 = ggarrange(A4, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "IBD GWAS - circYY1AP1",color="black")
+S6 = ggarrange(A3, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "CD GWAS - circYY1AP1",color="black")
+
+S7 = ggarrange(A4, ncol = 1, nrow = 1) + annotate(geom="text", x=0.15, y=0.97, label= "IBD GWAS - circYY1AP1",color="black")
 
 
 
 
 pdf( file= "output_paper/S4.pdf",  width= 10, height= 6)
-S2
-dev.off()
-
-
-pdf( file= "output_paper/S5.pdf",  width= 10, height= 6)
-S3
-dev.off()
-
-
-pdf( file= "output_paper/S6.pdf",  width= 10, height= 6)
 S4
 dev.off()
 
 
-pdf( file= "output_paper/S7.pdf",  width= 10, height= 6)
+pdf( file= "output_paper/S5.pdf",  width= 10, height= 6)
 S5
 dev.off()
 
-pdf( file= "output_paper/S8.pdf",  width= 10, height= 6)
+
+pdf( file= "output_paper/S6.pdf",  width= 10, height= 6)
 S6
+dev.off()
+
+
+pdf( file= "output_paper/S7.pdf",  width= 10, height= 6)
+S7
 dev.off()
 
